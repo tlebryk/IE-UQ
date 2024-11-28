@@ -20,4 +20,5 @@ classifiers = [
 dependencies = {file = "requirements.txt"}
 
 [tool.setuptools.packages.find]
-where = ["ie_uq"]
+where = ["."]
+include = ["ie_uq*"]

@@ -20,7 +20,6 @@ import time
 from peft import LoraConfig
 from urllib.parse import urlparse
 import requests
-import argparse
 
 import json
 def generate_spans(model, tokenizer, dataset, device, batch_size=4, start_index=0, max_index=None):
