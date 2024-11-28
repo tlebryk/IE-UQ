@@ -2,5 +2,8 @@ datasets
 trl
 transformers
 bitsandbytes
+peft
+datasets
+# torch
 # flash attention ?
 # loose packages for now. tighten later. 

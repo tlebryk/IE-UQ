@@ -1,6 +1,6 @@
 # %%
 import pandas as pd
-import langchain
+# import langchain
 from datasets import load_dataset
 from trl import SFTConfig, SFTTrainer
 from datasets import load_dataset
@@ -32,7 +32,7 @@ def generate_spans(model, tokenizer, dataset, device, batch_size=4, start_index=
         max_index = len(dataset)
     while start_index < max_index:
         end_index = min(start_index + batch_size, max_index)
-        formatted = formatting_prompts_func_no_completion(
+        formatted = formatting_fn_no_completion_batch(
             dataset[start_index:end_index]
         )
         inputs = tokenizer(formatted, return_tensors="pt").to(device)
@@ -69,7 +69,8 @@ def generate_jsons(
         max_index = len(dataset)
     while start_index < max_index:
         end_index = min(start_index + batch_size, max_index)
-        formatted = formatting_prompts_func_no_completion(
+        # TODO: get this off batch approach...
+        formatted = formatting_fn_no_completion_batch(
             dataset[start_index:end_index]
         )
         inputs = tokenizer(formatted, return_tensors="pt").to(device)
@@ -373,20 +374,7 @@ def main(
             json.dump(item, f)
             f.write('\n')
 
-# these should be paths eventually. 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--model_id", type=str, default="meta-llama/Llama-3.2-1B-Instruct")
-    parser.add_argument("--dataset_path", type=str, default=None)
-    parser.add_argument("--mode", type=str, default="extraction")
-    parser.add_argument("--output_dir", type=str, default=None)
-    parser.add_argument("--bnb_dict", type=dict, default=None)
-    parser.add_argument("--peft_dict", type=dict, default=None)
-    parser.add_argument("--sft_dict", type=dict, default=None)
-    parser.add_argument("--generation_dict", type=dict, default=None)
-    args = parser.parse_args()
-    main(**vars(args))
-    
+
     
 # TODO: 
 # 1. add flash attention.
