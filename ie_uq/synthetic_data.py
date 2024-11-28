@@ -169,7 +169,7 @@ def formatting_fn_no_completion_batch(examples):
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/lbnlp/NERRE/main/doping/data/training_json.jsonl",
-    mode: str = "synth_data",
+    mode: str = "synth_span",
     output_dir: str = None,
     bnb_dict: dict = None,
     peft_dict: dict = None,
