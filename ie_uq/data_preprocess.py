@@ -23,8 +23,8 @@ class DataPreprocessStandard:
     def synth_span(example):
         prefix = (
             "Based on this json, give me a passage containing it's elements."
-            "In other words, if you were asked to extract from the passage you created "
-            "it would extract the json below."
+            " In other words, if you were asked to extract from the passage you created"
+            " it would extract the json below."
             "\n\n###\n"
         )
         return {
@@ -59,8 +59,8 @@ class DataPreprocessOai:
     def synth_span(example):
         prefix = (
             "Based on this json, give me a sentence containing its elements."
-            "In other words, if you were asked to extract the dopants from the sentence you created "
-            "it should extract the json below."
+            " In other words, if you were asked to extract the dopants from the sentence you created"
+            " it should extract the json below."
         )
         return {
             "messages": [

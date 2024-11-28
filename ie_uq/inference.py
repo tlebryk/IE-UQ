@@ -1,14 +1,16 @@
+# %%
 import pandas as pd
 
 # import langchain
 from datasets import load_dataset
-from trl import SFTTrainer
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     PreTrainedTokenizerBase,
     BatchEncoding,
+    AutoConfig,
+    pipeline,
 )
 import os
 import torch
@@ -18,9 +20,12 @@ from typing import Optional, Union
 
 from urllib.parse import urlparse
 import requests
-
-from .config_utils import ConfigLoader
 import json
+from ie_uq.config_utils import ConfigLoader
+from ie_uq.data_preprocess import DataPreprocessStandard, DataPreprocessOai
+from ie_uq.data_load import DataLoad
+from ie_uq import inference
+from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
 def sample_generate(
@@ -189,33 +194,69 @@ def main(
     model_dict: Optional[Union[str, dict]] = None,
     generation_dict: Optional[Union[str, dict]] = None,
 ) -> None:
-    # load model here...
-    # will need bnb, generation_config,  model_dict
-    # but peft and sft configs unnecessary
     if not output_dir:
         # use current datetime
         output_dir = f"outputs/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     os.makedirs(output_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # BitsAndBytesConfig
+    # TODO: change to object grouping configs?
     bnb_config = ConfigLoader.load_bnb(bnb_dict)
     # peft_config = ConfigLoader.load_peft(peft_dict)
     # sft_config = ConfigLoader.load_sft(sft_dict, output_dir=output_dir, device=device)
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
-    dataset = load_dataset("json", data_files=dataset_path)
+    model_config = AutoConfig.from_pretrained(model_id)
+    generation_config = ConfigLoader.load_generation(generation_dict, model_config)
+    # TODO: load model config here.
+    #  load data
+    # THIS PART SHOULD BE PLUGGED IN AND OUT DEPENDING ON THE DATASET
 
-    if mode == "synth_json" or mode == "extraction":
-        json_list = generate_jsons(model, tokenizer, train_dataset, device)
+    dataset = DataLoad.load(dataset_path, split="train")
+    formater = getattr(DataPreprocessOai, mode, lambda x: x)
+    dataset = dataset.map(formater, remove_columns=dataset.features, batched=False)
+    # if no mode, assume extraction.
+    # train test split dataset
+    # TODO: clean this up...
+    split_dataset = dataset.train_test_split(test_size=0.1)
+    train_dataset = split_dataset["train"]
+    test_dataset = split_dataset["test"]
 
-    elif mode == "synth_span":
-        # clean the output
-        train_dataset = train_dataset.map(
-            lambda x: {"prompt": x["prompt"].lstrip(prefix)}
+    # TODO: undo hardcode and manage state somehow...
+    # load my peft adapter
+    path_to_peft = "/content/outputs/2024-11-28_19-08-52"
+    model = AutoModelForCausalLM.from_pretrained(path_to_peft, **model_dict)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    # reset model to use default chat template
+    # tokenizer.chat_template = None
+    # model, tokenizer = setup_chat_format(model, tokenizer)
+    tokenizer.pad_token = tokenizer.eos_token
+    model = model.load_adapter(path_to_peft)
+    pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        generation_config=generation_config,
+    )
+    max_index = 10
+    json_list = []
+    for i in range(max_index):
+        prompt = pipe.tokenizer.apply_chat_template(
+            train_dataset[i]["messages"][:-1],
+            tokenize=False,
+            add_generation_prompt=True,
         )
-        json_list = generate_spans(model, tokenizer, train_dataset, device)
-
-    with open("output.jsonl", "w") as f:
+        original_output = pipe(
+            prompt, return_full_text=False, generation_config=generation_config
+        )
+        json_obj = {
+            "prompt": prompt,
+            "completion": original_output[0]["generated_text"],
+        }
+        json_list.append(json_obj)
+    # iterate through training dataset and
+    with open("output.jsonl", "w", encoding="utf-8") as f:
         for item in json_list:
-            json.dump(item, f)
+            json.dump(item, f, ensure_ascii=False)
             f.write("\n")

@@ -57,7 +57,7 @@ class ConfigLoader:
     @staticmethod
     def load_generation(generation_dict, model_config):
         default = {
-            "max_new_tokens": 200,
+            "max_new_tokens": 100,
             "do_sample": True,
             # 'top_k': 50,
             "top_p": 0.9,

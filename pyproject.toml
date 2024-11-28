@@ -14,10 +14,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dynamic = ["dependencies"]
 
-# Let setuptools dynamically load dependencies from requirements.txt
 [tool.setuptools.dynamic]
-dependencies = {file = "requirements.txt"}
+dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.packages.find]
 where = ["."]

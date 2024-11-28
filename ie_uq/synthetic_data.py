@@ -28,14 +28,6 @@ from ie_uq import inference
 from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
-# class DataLoad():
-
-
-# this is specific to this project now...
-# will need to make it more general later?
-# basically remove cleaning steps
-
-
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/lbnlp/NERRE/main/doping/data/training_json.jsonl",
@@ -81,8 +73,9 @@ def main(
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     # reset model to use default chat template
-    tokenizer.chat_template = None
-    model, tokenizer = setup_chat_format(model, tokenizer)
+    # tokenizer.chat_template = None
+    # model, tokenizer = setup_chat_format(model, tokenizer)
+    tokenizer.pad_token = tokenizer.eos_token
     pipe = pipeline(
         "text-generation",
         model=model,
@@ -95,9 +88,9 @@ def main(
     )
     original_output = pipe(prompt, generation_config=generation_config)
 
-    print(f"Original Output: {original_output}")
+    print(f"Original Output: {original_output[0]['generated_text']}")
 
-    response_template = "<|im_start|>assistant\n"
+    response_template = "<|start_header_id|>assistant<|end_header_id|>"
     response_template_ids = tokenizer.encode(
         response_template, add_special_tokens=False
     )
@@ -125,7 +118,7 @@ def main(
     )
     finetuned_output = pipe(prompt, generation_config=generation_config)
 
-    print(f"Finetuned Output: {finetuned_output}")
+    print(f"Finetuned Output: {finetuned_output[0]['generated_text']}")
 
 
 # TODO:
