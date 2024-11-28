@@ -14,6 +14,8 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+[tool.setuptools]
 python_requires = ">=3.7"
 
 # Let setuptools dynamically load dependencies from requirements.txt
