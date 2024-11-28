@@ -268,7 +268,7 @@ def main(
         dataset = dataset.map(
             lambda x: {
                 "prompt": prefix + x["completion"].rstrip("\nEND"),
-                "completion": x["prompt"],
+                "completion": x["prompt"].rstrip("\n\nExtract doping information from this sentence.\n\n###\n"),
             }
         )
 
