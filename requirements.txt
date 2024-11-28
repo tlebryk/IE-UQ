@@ -1,0 +1,6 @@
+datasets
+trl
+transformers
+bitsandbytes
+# flash attention ?
+# loose packages for now. tighten later. 
