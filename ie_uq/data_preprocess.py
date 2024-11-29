@@ -45,14 +45,21 @@ class DataPreprocessStandard:
 class DataPreprocessOai:
     # save prompts here for now...
     synth_span_system_prompt = (
-        "I will give you a json and you will give me a sentence containing its elements."
+        "You are an expert writer."
+        " I will give you a json and you will give me a sentence containing its elements."
         " In other words, if you were asked to extract the dopants from the sentence you created"
         " it should extract the json I give you."
+        " Respond with the exact answer only, no explanations, no prefixes."
     )
     synth_json_user_prompt = (
-        "Give me a sample json of basemats, dopands and dopants2basemats."
+        "You are a helpful assistant that generates json."
+        " Give me a sample json of basemats, dopands and dopants2basemats."
+        " Respond with the exact answer only, no explanations, no prefixes."
     )
-    extraction_system_prompt = "Extract doping information from this sentence."
+    extraction_system_prompt = (
+        "Extract doping information from this sentence."
+        "Respond with the exact answer only, no explanations, no prefixes."
+    )
 
     # convert to Open AI style
     @staticmethod
@@ -74,7 +81,7 @@ class DataPreprocessOai:
         return {
             "messages": [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": example["completion"]},
+                {"role": "user", "content": f"{example['completion']}"},
                 {
                     "role": "assistant",
                     "content": example["prompt"],

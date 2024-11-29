@@ -19,6 +19,7 @@ import os
 import torch
 import time
 import json
+from tqdm import tqdm
 
 
 def main(
@@ -43,7 +44,7 @@ def main(
     # peft_config = ConfigLoader.load_peft(peft_dict)
     # sft_config = ConfigLoader.load_sft(sft_dict, output_dir=output_dir, device=device)
     model_dict = ConfigLoader.load_model_dict(
-        model_dict, device=device, bnb_config=bnb_config
+        model_dict, device=device  # , bnb_config=bnb_config
     )
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
@@ -125,7 +126,7 @@ def main(
 
     max_index = 10
     json_list = []
-    for i in range(max_index):
+    for i in tqdm(range(max_index)):
         prompt = pipe.tokenizer.apply_chat_template(
             train_dataset[i]["messages"][:-1],
             tokenize=False,
@@ -144,3 +145,10 @@ def main(
         for item in json_list:
             json.dump(item, f, ensure_ascii=False)
             f.write("\n")
+
+
+# TODO:
+# 1. This only works for the synthetic spans
+# 2. Implement synthetic Json
+# 3. Implement extraction few shot
+# 4. incorporate training here?

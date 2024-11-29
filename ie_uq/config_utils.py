@@ -61,7 +61,7 @@ class ConfigLoader:
             "do_sample": True,
             # 'top_k': 50,
             "top_p": 0.9,
-            "temperature": 0.9,
+            "temperature": 0.7,
             "eos_token_id": model_config.eos_token_id,
         }
         config = ConfigLoader.load_config_dict(generation_dict, default)
