@@ -4,6 +4,9 @@ transformers
 bitsandbytes
 peft
 datasets
+langchain
+# can rip out langchain and refactor out 
+# prompt template element 
 # torch
 # flash attention ?
 # loose packages for now. tighten later. 
