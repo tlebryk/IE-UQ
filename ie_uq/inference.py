@@ -1,7 +1,10 @@
 # %%
 import pandas as pd
 
-# import langchain
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    FewShotChatMessagePromptTemplate,
+)
 from datasets import load_dataset
 from datasets import load_dataset
 from transformers import (
@@ -18,14 +21,10 @@ import time
 
 from typing import Optional, Union
 
-from urllib.parse import urlparse
-import requests
 import json
 from ie_uq.config_utils import ConfigLoader
-from ie_uq.data_preprocess import DataPreprocessStandard, DataPreprocessOai
+from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
-from ie_uq import inference
-from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
 def sample_generate(

@@ -1,14 +1,10 @@
 # %%
-import pandas as pd
-
 # import langchain
 from datasets import load_dataset
 from datasets import load_dataset
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
-    PreTrainedTokenizerBase,
-    BatchEncoding,
     AutoConfig,
     pipeline,
 )
@@ -18,19 +14,16 @@ import time
 
 from typing import Optional, Union
 
-from urllib.parse import urlparse
-import requests
 
 from ie_uq.config_utils import ConfigLoader
-from ie_uq.data_preprocess import DataPreprocessStandard, DataPreprocessOai
+from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
-from ie_uq import inference
 from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
-    dataset_path: str = "https://raw.githubusercontent.com/lbnlp/NERRE/main/doping/data/training_json.jsonl",
+    dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
     mode: str = "synth_span",
     output_dir: str = None,
     bnb_dict: Optional[Union[str, dict]] = None,
@@ -124,7 +117,5 @@ def main(
 # TODO:
 # 1. add flash attention.
 # 2. add few shot.
-# 3. add configs as paths, not direct dictionaries.
-# 4. add UQ stuff here.
-# 5. split out the inference section...
+# 3. add UQ stuff here.
 # %%

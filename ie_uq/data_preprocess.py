@@ -10,7 +10,7 @@ class DataPreprocessStandard:
         question = "Give me a sample json of basemats, dopands and dopants2basemats."
         return {
             "prompt": question,
-            "completion": example["completion"].rstrip("\nEND"),
+            "completion": example["completion"],
         }
         # replace prompt with question for json output
         # dataset = dataset.map(
@@ -28,17 +28,15 @@ class DataPreprocessStandard:
             "\n\n###\n"
         )
         return {
-            "prompt": prefix + example["completion"].rstrip("\nEND"),
-            "completion": example["prompt"].rstrip(
-                "\n\nExtract doping information from this sentence.\n\n###\n"
-            ),
+            "prompt": prefix + example["completion"],
+            "completion": example["prompt"],
         }
 
     @staticmethod
     def extraction(example):
         return {
             "prompt": example["prompt"],
-            "completion": example["completion"].rstrip("\nEND"),
+            "completion": example["completion"],
         }
 
 
@@ -50,8 +48,8 @@ class DataPreprocessOai:
         return {
             "messages": [
                 {"role": "system", "content": question},
-                # {"role": "user", "content": example["prompt"].rstrip("\n\nExtract doping information from this sentence.\n\n###\n")},
-                {"role": "assistant", "content": example["completion"].rstrip("\nEND")},
+                # {"role": "user", "content": example["prompt"]
+                {"role": "assistant", "content": example["completion"]},
             ]
         }
 
@@ -65,12 +63,10 @@ class DataPreprocessOai:
         return {
             "messages": [
                 {"role": "system", "content": prefix},
-                {"role": "user", "content": example["completion"].rstrip("\nEND")},
+                {"role": "user", "content": example["completion"]},
                 {
                     "role": "assistant",
-                    "content": example["prompt"].rstrip(
-                        "\n\nExtract doping information from this sentence.\n\n###\n"
-                    ),
+                    "content": example["prompt"],
                 },
             ]
         }
@@ -83,10 +79,8 @@ class DataPreprocessOai:
                 {"role": "system", "content": prefix},
                 {
                     "role": "user",
-                    "content": example["prompt"].rstrip(
-                        "\n\nExtract doping information from this sentence.\n\n###\n"
-                    ),
+                    "content": example["prompt"],
                 },
-                {"role": "assistant", "content": example["completion"].rstrip("\nEND")},
+                {"role": "assistant", "content": example["completion"]},
             ]
         }
