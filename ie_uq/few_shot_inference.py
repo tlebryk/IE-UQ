@@ -165,6 +165,8 @@ def main(
                 )
 
                 dopant_sentence["entity_graph_raw"] = ents
+                del messages, prompt, generation, llm_completion, ents
+                torch.cuda.empty_cache()
 
     # Save the updated JSON data to a new file
     output_path = os.path.join(output_dir, "fewshot2output.json")
