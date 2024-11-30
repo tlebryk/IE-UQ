@@ -5,8 +5,8 @@ bitsandbytes
 peft
 datasets
 langchain
-nerre[dev] @ git+https://github.com/tlebryk/NERRE.git@dev
-llama-nerre[dev] @ git+https://github.com/tlebryk/NERRE.git@dev
+nerre @ git+https://github.com/tlebryk/NERRE.git@dev
+llama-nerre @ git+https://github.com/tlebryk/NERRE.git@dev
 # can rip out langchain and refactor out 
 # prompt template element 
 # torch
