@@ -54,7 +54,7 @@ def main(
     # peft_config = ConfigLoader.load_peft(peft_dict)
     # sft_config = ConfigLoader.load_sft(sft_dict, output_dir=output_dir, device=device)
     model_dict = ConfigLoader.load_model_dict(
-        model_dict, device=device  # , bnb_config=bnb_config
+        model_dict, device=device, bnb_config=bnb_config
     )
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
