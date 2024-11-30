@@ -10,7 +10,7 @@ from transformers import (
     AutoConfig,
     pipeline,
 )
-
+from datasets import Dataset
 from ie_uq.config_utils import ConfigLoader
 from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
@@ -20,6 +20,8 @@ import torch
 import time
 import json
 from tqdm import tqdm
+import requests
+from doping.step2_train_predict import decode_entities_from_llm_completion
 
 
 def main(
@@ -40,7 +42,7 @@ def main(
     os.makedirs(output_dir, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # BitsAndBytesConfig
-    # TODO: change to object grouping configs?
+    # TODO: add quantization to inference?
     bnb_config = ConfigLoader.load_bnb(bnb_dict)
     # peft_config = ConfigLoader.load_peft(peft_dict)
     # sft_config = ConfigLoader.load_sft(sft_dict, output_dir=output_dir, device=device)
@@ -50,12 +52,12 @@ def main(
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
 
-    dataset = DataLoad.load(dataset_path, split="train")
-    dataset = dataset.map(
+    example_dataset = DataLoad.load(dataset_path, split="train")
+    example_dataset = example_dataset.map(
         lambda x: {
             "prompt": x["prompt"].replace("{", "{{").replace("}", "}}"),
             "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
-        }
+        },
     )
     # Define your example template with custom role names
     example_template = """ user {prompt} \n assistant {completion}"""
@@ -69,21 +71,14 @@ def main(
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
     system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
-    examples_list = dataset.to_pandas().to_dict(orient="records")
+    examples_list = example_dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
 
-    # load inference dataset
-    # from nerre_llama.step2_predict_llama2 import create_sentences_json_for_inference
-    from doping.step2_train_predict import create_sentences_json_for_inference
-    from monty.serialization import loadfn, dumpfn
+    # Sample function that processes sentence_text and returns llm_completion
+    def example_llm_function(sentence_text):
+        # Replace this function with the actual logic or computation
+        return ' {\n "basemats": {\n  "b0": "ZnO"\n },\n "dopants": {\n  "d0": "Al",\n  "d1": "Ga",\n  "d2": "In"\n },\n "dopants2basemats": {\n  "d0": [\n   "b0"\n  ],\n  "d1": [\n   "b0"\n  ],\n  "d2": [\n   "b0"\n  ]\n }\n}'
 
-    # download inference_dataset_path and load the json
-    inference_dataset = DataLoad.load(inference_dataset_path, split="train")
-    for i, d in enumerate(inference_dataset):
-        break
-        entry_json = create_sentences_json_for_inference(d)
-
-    # TODO: stop having formatter and system_prompt as locals for this closure...
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
         examples = random.sample(examples_list, n_samples)
         # Create the FewShotPromptTemplate without additional input variables
@@ -99,32 +94,21 @@ def main(
         final_few_shot = few_shot_prompt.format()
         sys_prompt = (
             f"{system_prompt}"
-            "Here are some examples:\n"
+            " Here are some examples:\n"
             f"{final_few_shot}\n"
             " Now your turn."
         )
         return sys_prompt
 
-    # if mode == "synth_span":
+    # URL of the JSON data
+    # url = 'https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json'
 
-    system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
-    # Use dataset.map to apply the formatting function, passing the index to it
-    dataset = dataset.map(
-        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
-        with_indices=True,
-        remove_columns=dataset.features,
-        batched=False,
-    )
-    # if mode == "synth_json":
-    #     pass
-    # if mode == "extraction":
-
-    split_dataset = dataset.train_test_split(test_size=0.1)
-    train_dataset = split_dataset["train"]
-    test_dataset = split_dataset["test"]
-
-    model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
+    # Fetch JSON data from the URL
+    # TODO: refactor to accept local paths too.
+    response = requests.get(inference_dataset_path)
+    data = response.json()
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
@@ -135,33 +119,34 @@ def main(
         tokenizer=tokenizer,
         generation_config=generation_config,
     )
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
-    )
-    original_output = pipe(prompt, generation_config=generation_config)
-    print(f"Original Output: {original_output[0]['generated_text']}")
+    # Iterate over each dictionary in the list
+    for entry in tqdm(data):
+        # Iterate over each doping_sentence in the nested list
+        for dopant_sentence in entry.get("doping_sentences", []):
+            # Get the sentence text
+            sentence_text = dopant_sentence.get("sentence_text", "")
+            # Apply the computation function to sentence_text
+            system_prompt = add_few_shot_prompt(examples_list, n_samples)
+            messages = formater(
+                {"prompt": sentence_text, "completion": ""}, system_prompt=system_prompt
+            )
+            prompt = pipe.tokenizer.apply_chat_template(
+                messages["messages"][:-1], tokenize=False, add_generation_prompt=True
+            )
+            llm_completion = pipe(prompt, generation_config=generation_config)
+            # example_llm_function
+            # Store the result under "llm_completion"
+            # llm_completion = example_llm_function(sentence_text)
+            dopant_sentence["llm_completion"] = llm_completion
+            ents = decode_entities_from_llm_completion(
+                dopant_sentence["llm_completion"], fmt="json"
+            )
 
-    max_index = 10
-    json_list = []
-    for i in tqdm(range(max_index)):
-        prompt = pipe.tokenizer.apply_chat_template(
-            train_dataset[i]["messages"][:-1],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
-        original_output = pipe(
-            prompt, return_full_text=False, generation_config=generation_config
-        )
-        json_obj = {
-            "prompt": prompt,
-            "completion": original_output[0]["generated_text"],
-        }
-        json_list.append(json_obj)
-    # iterate through training dataset and
-    with open("few_shot_output.jsonl", "w", encoding="utf-8") as f:
-        for item in json_list:
-            json.dump(item, f, ensure_ascii=False)
-            f.write("\n")
+            dopant_sentence["entity_graph_raw"] = ents
+
+    # Save the updated JSON data to a new file
+    with open("output.json", "w") as outfile:
+        json.dump(data, outfile, indent=2)
 
 
 # TODO:
@@ -169,5 +154,3 @@ def main(
 # 2. Implement synthetic Json
 # 3. Implement extraction few shot
 # 4. incorporate training here?
-
-# %%
