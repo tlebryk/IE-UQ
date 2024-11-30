@@ -58,7 +58,7 @@ def main(
         }
     )
     # Define your example template with custom role names
-    example_template = """user {prompt}\nassistant {completion}"""
+    example_template = """ user {prompt} \n assistant {completion}"""
 
     # Create a PromptTemplate for the examples
     example_prompt = PromptTemplate(
@@ -101,7 +101,7 @@ def main(
             f"{system_prompt}"
             "Here are some examples:\n"
             f"{final_few_shot}\n"
-            "Now your turn."
+            " Now your turn."
         )
         return sys_prompt
 
@@ -112,8 +112,12 @@ def main(
     dataset = dataset.map(
         lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
         with_indices=True,
+        remove_columns=dataset.features,
         batched=False,
     )
+    # if mode == "synth_json":
+    #     pass
+    # if mode == "extraction":
 
     split_dataset = dataset.train_test_split(test_size=0.1)
     train_dataset = split_dataset["train"]
