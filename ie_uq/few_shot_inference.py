@@ -118,6 +118,7 @@ def main(
         data = data[:1]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
+    model = model.eval().to(device)
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
@@ -129,6 +130,7 @@ def main(
         generation_config=generation_config,
     )
     # Iterate over each dictionary in the list
+    # TODO: pack this into a dataset for generation efficiency.
     for entry in tqdm(data):
         # Iterate over each doping_sentence in the nested list
         for dopant_sentence in entry.get("doping_sentences", []):
