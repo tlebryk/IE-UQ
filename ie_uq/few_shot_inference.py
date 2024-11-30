@@ -118,7 +118,7 @@ def main(
         data = data[:1]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
-    model = model.eval().to(device)
+    model = model.eval()
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
