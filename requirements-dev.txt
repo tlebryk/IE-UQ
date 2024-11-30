@@ -5,3 +5,4 @@ monty==2021.12.1
 jellyfish==0.9.0
 numpy
 seaborn
+ipykernel

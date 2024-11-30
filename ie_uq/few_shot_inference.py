@@ -25,6 +25,7 @@ from tqdm import tqdm
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
+    inference_dataset_path: str = "https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json",
     mode: str = "synth_span",
     output_dir: str = None,
     bnb_dict: Optional[Union[str, dict]] = None,
@@ -49,9 +50,6 @@ def main(
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
 
-    dataset_path: str = (
-        "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl"
-    )
     dataset = DataLoad.load(dataset_path, split="train")
     dataset = dataset.map(
         lambda x: {
@@ -69,10 +67,12 @@ def main(
     )
 
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
+    system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
     examples_list = dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
 
+    # TODO: stop having formatter and system_prompt as locals for this closure...
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
         examples = random.sample(examples_list, n_samples)
         # Create the FewShotPromptTemplate without additional input variables
@@ -86,18 +86,20 @@ def main(
 
         # Format the prompt
         final_few_shot = few_shot_prompt.format()
-        system_prompt = (
-            f"{DataPreprocessOai.synth_span_system_prompt}"
+        sys_prompt = (
+            f"{system_prompt}"
             "Here are some examples:\n"
             f"{final_few_shot}\n"
             "Now your turn."
         )
-        return system_prompt
+        return sys_prompt
+
+    # if mode == "synth_span":
 
     system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
     # Use dataset.map to apply the formatting function, passing the index to it
     dataset = dataset.map(
-        lambda example, idx: formater(example, system_prompts[idx]),
+        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
         with_indices=True,
         batched=False,
     )
@@ -152,3 +154,5 @@ def main(
 # 2. Implement synthetic Json
 # 3. Implement extraction few shot
 # 4. incorporate training here?
+
+# %%

@@ -51,24 +51,29 @@ class DataPreprocessOai:
         " it should extract the json I give you."
         " Respond with the exact answer only, no explanations, no prefixes."
     )
-    synth_json_user_prompt = (
+    synth_json_system_prompt = (
         "You are a helpful assistant that generates json."
-        " Give me a sample json of basemats, dopands and dopants2basemats."
         " Respond with the exact answer only, no explanations, no prefixes."
     )
+    
+    synth_json_user_prompt = (
+        "Give me a sample json of basemats, dopands and dopants2basemats."
+    )
+    
     extraction_system_prompt = (
         "Extract doping information from this sentence."
-        "Respond with the exact answer only, no explanations, no prefixes."
+        " Respond with the exact answer only, no explanations, no prefixes."
     )
-
     # convert to Open AI style
     @staticmethod
-    def synth_json(example, user_prompt=None):
+    def synth_json(example, system_prompt=None, user_prompt=None):
         if not user_prompt:
             user_prompt = DataPreprocessOai.synth_json_user_prompt
+        if not system_prompt:
+            system_prompt = DataPreprocessOai.synth_json_system_prompt
         return {
             "messages": [
-                # {"role": "system", "content": system_prompt},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
                 {"role": "assistant", "content": example["completion"]},
             ]
