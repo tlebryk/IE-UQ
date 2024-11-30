@@ -60,7 +60,7 @@ def main(
         }
     )
     # Define your example template with custom role names
-    example_template = """user {prompt}\nassistant {completion}"""
+    example_template = """ user {prompt} \n assistant {completion}"""
 
     # Create a PromptTemplate for the examples
     example_prompt = PromptTemplate(
@@ -69,10 +69,12 @@ def main(
     )
 
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
+    system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
     examples_list = dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
 
+    # TODO: stop having formatter and system_prompt as locals for this closure...
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
         examples = random.sample(examples_list, n_samples)
         # Create the FewShotPromptTemplate without additional input variables
@@ -86,21 +88,27 @@ def main(
 
         # Format the prompt
         final_few_shot = few_shot_prompt.format()
-        system_prompt = (
-            f"{DataPreprocessOai.synth_span_system_prompt}"
-            "Here are some examples:\n"
+        sys_prompt = (
+            f"{system_prompt}"
+            " Here are some examples:\n"
             f"{final_few_shot}\n"
-            "Now your turn."
+            " Now your turn."
         )
-        return system_prompt
+        return sys_prompt
+
+    # if mode == "synth_span":
 
     system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
     # Use dataset.map to apply the formatting function, passing the index to it
     dataset = dataset.map(
-        lambda example, idx: formater(example, system_prompts[idx]),
+        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
         with_indices=True,
+        remove_columns=dataset.features,
         batched=False,
     )
+    # if mode == "synth_json":
+    #     pass
+    # if mode == "extraction":
 
     split_dataset = dataset.train_test_split(test_size=0.1)
     train_dataset = split_dataset["train"]
@@ -152,3 +160,5 @@ def main(
 # 2. Implement synthetic Json
 # 3. Implement extraction few shot
 # 4. incorporate training here?
+
+# %%
