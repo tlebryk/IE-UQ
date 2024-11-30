@@ -72,6 +72,17 @@ def main(
     examples_list = dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
 
+    # load inference dataset
+    # from nerre_llama.step2_predict_llama2 import create_sentences_json_for_inference
+    from doping.step2_train_predict import create_sentences_json_for_inference
+    from monty.serialization import loadfn, dumpfn
+
+    # download inference_dataset_path and load the json
+    inference_dataset = DataLoad.load(inference_dataset_path, split="train")
+    for i, d in enumerate(inference_dataset):
+        break
+        entry_json = create_sentences_json_for_inference(d)
+
     # TODO: stop having formatter and system_prompt as locals for this closure...
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
         examples = random.sample(examples_list, n_samples)
