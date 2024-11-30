@@ -22,6 +22,12 @@ import json
 from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
+import re
+
+
+def get_text_between_curly_braces(input_string):
+    match = re.search(r"\{.*\}", input_string, re.DOTALL)
+    return match.group(0) if match else None
 
 
 def main(
@@ -35,6 +41,7 @@ def main(
     # sft_dict: Optional[Union[str, dict]] = None,
     model_dict: Optional[Union[str, dict]] = None,
     generation_dict: Optional[Union[str, dict]] = None,
+    quick_mode: bool = False,
 ) -> None:
     if not output_dir:
         # use current datetime
@@ -107,6 +114,8 @@ def main(
     # TODO: refactor to accept local paths too.
     response = requests.get(inference_dataset_path)
     data = response.json()
+    if quick_mode:
+        data = data[:1]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     # reset model to use default chat template
@@ -133,7 +142,14 @@ def main(
             prompt = pipe.tokenizer.apply_chat_template(
                 messages["messages"][:-1], tokenize=False, add_generation_prompt=True
             )
-            llm_completion = pipe(prompt, generation_config=generation_config)
+            generation = pipe(
+                prompt, return_full_text=False, generation_config=generation_config
+            )
+            # print("generation", generation)
+            # don't support batch yet
+            llm_completion = get_text_between_curly_braces(
+                generation[0]["generated_text"]
+            )
             # example_llm_function
             # Store the result under "llm_completion"
             # llm_completion = example_llm_function(sentence_text)
@@ -145,7 +161,8 @@ def main(
             dopant_sentence["entity_graph_raw"] = ents
 
     # Save the updated JSON data to a new file
-    with open("output.json", "w") as outfile:
+    output_path = os.path.join(output_dir, "fewshot2output.json")
+    with open(output_path, "w") as outfile:
         json.dump(data, outfile, indent=2)
 
 
