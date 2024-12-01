@@ -150,10 +150,11 @@ def main(
 
     # Fetch JSON data from the URL
     # TODO: refactor to accept local paths too.
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     model = model.eval()
     model_config = model.config
+    tokenizer_id = model.base_model.config.name_or_path
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
     # AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
     # reset model to use default chat template
