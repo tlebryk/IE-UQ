@@ -189,7 +189,9 @@ def main(
         }
         json_list.append(json_obj)
     # iterate through training dataset and
-    with open("few_shot_output.jsonl", "w", encoding="utf-8") as f:
+    with open(
+        os.path.join(output_dir, "few_shot_output.jsonl"), "w", encoding="utf-8"
+    ) as f:
         for item in json_list:
             json.dump(item, f, ensure_ascii=False)
             f.write("\n")
