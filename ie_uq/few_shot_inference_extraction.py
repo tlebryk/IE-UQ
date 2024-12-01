@@ -28,6 +28,7 @@ from doping.step2_train_predict import decode_entities_from_llm_completion
 import re
 
 
+# TODO: move me to shared library code
 def get_text_between_curly_braces(input_string):
     match = re.search(r"\{.*\}", input_string, re.DOTALL)
     return match.group(0) if match else None
@@ -83,13 +84,6 @@ def main(
 
     examples_list = example_dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
-    dataset = DataLoad.load(inference_dataset_path, split="train")
-    dataset = dataset.map(
-        lambda x: {
-            "prompt": x["prompt"].replace("{", "{{").replace("}", "}}"),
-            "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
-        },
-    )
 
     # Sample function that processes sentence_text and returns llm_completion
     def example_llm_function(sentence_text):
@@ -122,6 +116,10 @@ def main(
 
     # Fetch JSON data from the URL
     # TODO: refactor to accept local paths too.
+    response = requests.get(inference_dataset_path)
+    data = response.json()
+    if quick_mode:
+        data = data[:1]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     model = model.eval()
@@ -136,53 +134,47 @@ def main(
         generation_config=generation_config,
     )
 
-    system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
-    # Use dataset.map to apply the formatting function, passing the index to it
-    dataset = dataset.map(
-        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
-        with_indices=True,
-        # remove_columns=dataset.features,
-        batched=False,
-    )
-    # if mode == "synth_json":
-    #     pass
-    # if mode == "extraction":
-    train_dataset = dataset
-    # split_dataset = dataset.train_test_split(test_size=0.1)
-    # train_dataset = split_dataset["train"]
-    # test_dataset = split_dataset["test"]
+    # Iterate over each dictionary in the list
+    # TODO: pack this into a dataset for generation efficiency.
+    # This should be handled at the pipeline level... but memory was bad so doing here.
+    with torch.no_grad():
+        for entry in tqdm(data):
+            # Iterate over each doping_sentence in the nested list
+            for dopant_sentence in entry.get("doping_sentences", []):
+                # Get the sentence text
+                sentence_text = dopant_sentence.get("sentence_text", "")
+                # Apply the computation function to sentence_text
+                system_prompt = add_few_shot_prompt(examples_list, n_samples)
+                messages = formater(
+                    {"prompt": sentence_text, "completion": ""},
+                    system_prompt=system_prompt,
+                )
+                prompt = pipe.tokenizer.apply_chat_template(
+                    messages["messages"][:-1],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+                generation = pipe(
+                    prompt, return_full_text=False, generation_config=generation_config
+                )
+                # print("generation", generation)
+                # don't support batch yet
+                llm_completion = get_text_between_curly_braces(
+                    generation[0]["generated_text"]
+                )
+                # example_llm_function
+                # Store the result under "llm_completion"
+                # llm_completion = example_llm_function(sentence_text)
+                dopant_sentence["llm_completion"] = llm_completion
+                ents = decode_entities_from_llm_completion(
+                    dopant_sentence["llm_completion"], fmt="json"
+                )
 
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
-    )
-    original_output = pipe(prompt, generation_config=generation_config)
-    print(f"Original Output: {original_output[0]['generated_text']}")
+                dopant_sentence["entity_graph_raw"] = ents
+                del messages, prompt, generation, llm_completion, ents
+                torch.cuda.empty_cache()
 
-    max_index = 10
-    json_list = []
-    for i in tqdm(range(max_index)):
-        prompt = pipe.tokenizer.apply_chat_template(
-            train_dataset[i]["messages"][:-1],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
-        original_output = pipe(
-            prompt, return_full_text=False, generation_config=generation_config
-        )
-        json_obj = {
-            "prompt": prompt,
-            "completion": original_output[0]["generated_text"],
-        }
-        json_list.append(json_obj)
-    # iterate through training dataset and
-    with open("few_shot_output.jsonl", "w", encoding="utf-8") as f:
-        for item in json_list:
-            json.dump(item, f, ensure_ascii=False)
-            f.write("\n")
-
-
-# TODO:
-# 1. This only works for the synthetic spans
-# 2. Implement synthetic Json
-# 3. Implement extraction few shot
-# 4. incorporate training here?
+    # Save the updated JSON data to a new file
+    output_path = os.path.join(output_dir, "fewshot2output.json")
+    with open(output_path, "w") as outfile:
+        json.dump(data, outfile, indent=2)
