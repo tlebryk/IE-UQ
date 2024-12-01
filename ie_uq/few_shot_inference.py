@@ -69,6 +69,7 @@ def main(
             "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
         },
     )
+
     # Define your example template with custom role names
     example_template = """ user {prompt} \n assistant {completion}"""
 
@@ -81,7 +82,6 @@ def main(
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
     system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
-    examples_list = example_dataset.to_pandas().to_dict(orient="records")
     n_samples = 2
     dataset = DataLoad.load(inference_dataset_path, split="train")
     dataset = dataset.map(
@@ -90,6 +90,25 @@ def main(
             "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
         },
     )
+    if quick_mode:
+        dataset = dataset.select(range(10))
+    # format user message
+    if mode == "synth_span":
+        example_dataset = example_dataset.map(
+            lambda x: {
+                "prompt": x["completion"],
+                "completion": x["prompt"],
+            },
+        )
+    if mode == "synth_json":
+        example_dataset = example_dataset.map(
+            lambda x: {
+                "prompt": getattr(DataPreprocessOai, mode + "_user_prompt", None),
+                "completion": x["completion"],
+            },
+        )
+
+    examples_list = example_dataset.to_pandas().to_dict(orient="records")
 
     # Sample function that processes sentence_text and returns llm_completion
     def example_llm_function(sentence_text):
@@ -97,6 +116,7 @@ def main(
         return ' {\n "basemats": {\n  "b0": "ZnO"\n },\n "dopants": {\n  "d0": "Al",\n  "d1": "Ga",\n  "d2": "In"\n },\n "dopants2basemats": {\n  "d0": [\n   "b0"\n  ],\n  "d1": [\n   "b0"\n  ],\n  "d2": [\n   "b0"\n  ]\n }\n}'
 
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
+
         examples = random.sample(examples_list, n_samples)
         # Create the FewShotPromptTemplate without additional input variables
         few_shot_prompt = FewShotPromptTemplate(
@@ -108,7 +128,9 @@ def main(
         )
 
         # Format the prompt
-        final_few_shot = few_shot_prompt.format()
+        final_few_shot = (
+            few_shot_prompt.format()
+        )  # .replace("{{", "{").replace("}}", "}")
         sys_prompt = (
             f"{system_prompt}"
             " Here are some examples:\n"
@@ -117,6 +139,14 @@ def main(
         )
         return sys_prompt
 
+    system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
+    # Use dataset.map to apply the formatting function, passing the index to it
+    train_dataset = dataset.map(
+        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
+        with_indices=True,
+        # remove_columns=dataset.features,
+        batched=False,
+    )
     # URL of the JSON data
     # url = 'https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json'
 
@@ -135,22 +165,6 @@ def main(
         tokenizer=tokenizer,
         generation_config=generation_config,
     )
-
-    system_prompts = [add_few_shot_prompt() for _ in range(len(dataset))]
-    # Use dataset.map to apply the formatting function, passing the index to it
-    dataset = dataset.map(
-        lambda example, idx: formater(example, system_prompt=system_prompts[idx]),
-        with_indices=True,
-        # remove_columns=dataset.features,
-        batched=False,
-    )
-    # if mode == "synth_json":
-    #     pass
-    # if mode == "extraction":
-    train_dataset = dataset
-    # split_dataset = dataset.train_test_split(test_size=0.1)
-    # train_dataset = split_dataset["train"]
-    # test_dataset = split_dataset["test"]
 
     prompt = pipe.tokenizer.apply_chat_template(
         train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
