@@ -25,7 +25,7 @@ class ConfigLoader:
             # TODO: support uris
             with open(config, "r", encoding="utf-8") as file:
                 return yaml.safe_load(file)
-        if not config:
+        if config is None:
             return default
         return config
 
