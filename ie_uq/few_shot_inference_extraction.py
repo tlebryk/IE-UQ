@@ -133,11 +133,9 @@ def main(
         tokenizer=tokenizer,
         generation_config=generation_config,
     )
-
-    # Iterate over each dictionary in the list
-    # TODO: pack this into a dataset for generation efficiency.
-    # This should be handled at the pipeline level... but memory was bad so doing here.
     with torch.no_grad():
+        # Iterate over each dictionary in the list
+        # TODO: pack this into a dataset for generation efficiency.
         for entry in tqdm(data):
             # Iterate over each doping_sentence in the nested list
             for dopant_sentence in entry.get("doping_sentences", []):

@@ -160,43 +160,51 @@ def main(
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
-    tokenizer.pad_token = tokenizer.eos_token
-    pipe = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        generation_config=generation_config,
-    )
+    with torch.no_grad():
+        tokenizer.pad_token = tokenizer.eos_token
+        pipe = pipeline(
+            "text-generation",
+            model=model,
+            tokenizer=tokenizer,
+            generation_config=generation_config,
+        )
 
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
-    )
-    original_output = pipe(prompt, generation_config=generation_config)
-    print(f"Original Output: {original_output[0]['generated_text']}")
-
-    max_index = 10
-    json_list = []
-    for i in tqdm(range(max_index)):
         prompt = pipe.tokenizer.apply_chat_template(
-            train_dataset[i]["messages"][:-1],
-            tokenize=False,
-            add_generation_prompt=True,
+            train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
         )
-        original_output = pipe(
-            prompt, return_full_text=False, generation_config=generation_config
-        )
-        json_obj = {
-            "prompt": prompt,
-            "completion": original_output[0]["generated_text"],
-        }
-        json_list.append(json_obj)
-    # iterate through training dataset and
-    with open(
-        os.path.join(output_dir, "few_shot_output.jsonl"), "w", encoding="utf-8"
-    ) as f:
-        for item in json_list:
-            json.dump(item, f, ensure_ascii=False)
-            f.write("\n")
+        original_output = pipe(prompt, generation_config=generation_config)
+        print(f"Original Output: {original_output[0]['generated_text']}")
+
+        max_index = 10
+        json_list = []
+        for i in tqdm(range(max_index)):
+            prompt = pipe.tokenizer.apply_chat_template(
+                train_dataset[i]["messages"][:-1],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            original_output = pipe(
+                prompt, return_full_text=False, generation_config=generation_config
+            )
+            if mode == "synth_span":
+                # switch prompt and completion back. 
+                json_obj = {
+                    "prompt": original_output[0]["generated_text"],
+                    "completion": prompt,
+                }
+            else:
+                json_obj = {
+                    "prompt": prompt,
+                    "completion": original_output[0]["generated_text"],
+                }
+            json_list.append(json_obj)
+        # iterate through training dataset and
+        with open(
+            os.path.join(output_dir, "few_shot_output.jsonl"), "w", encoding="utf-8"
+        ) as f:
+            for item in json_list:
+                json.dump(item, f, ensure_ascii=False)
+                f.write("\n")
 
 
 # TODO:
