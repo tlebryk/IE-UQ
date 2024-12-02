@@ -7,7 +7,7 @@ def calculate_perplexity_raw(text, tokenizer, model):
     with torch.no_grad():
         # Tokenize the full input
         # Get the length of the assistant message at the end of the inputs
-
+        input_ids = tokenizer(text, return_tensors="pt").input_ids
         outputs = model(text, labels=text)
         # just use loss 
         perplexity = torch.exp(outputs.loss)
