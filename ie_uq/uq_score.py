@@ -72,8 +72,8 @@ def main(
     tokenizer.pad_token = tokenizer.eos_token
     train_dataset = train_dataset.map(
         lambda x: {"formated_chat":  tokenizer.apply_chat_template(x["messages"][:-1], tokenize=False, add_generation_prompt=False)} ) # maybe drop messages after this? 
-    train_dataset = train_dataset.map({
-        "perplexity": lambda x: uq_utils.calculate_perplexity_raw(x["formated_chat"], tokenizer, model)
+    train_dataset = train_dataset.map(lambda x: {
+        "perplexity":  uq_utils.calculate_perplexity_raw(x["formated_chat"], tokenizer, model)
     })
     
     # save the perplexity scores 
