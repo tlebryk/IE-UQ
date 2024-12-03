@@ -26,6 +26,7 @@ from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
 import re
+import logging
 
 
 def get_text_between_curly_braces(input_string):
@@ -59,6 +60,7 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
+    logging.info
 
     example_dataset = DataLoad.load(dataset_path, split="train")
     example_dataset = example_dataset.map(
@@ -170,7 +172,9 @@ def main(
         )
 
         prompt = pipe.tokenizer.apply_chat_template(
-            train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
+            train_dataset[0]["messages"][:-1],
+            tokenize=False,
+            add_generation_prompt=True,
         )
         original_output = pipe(prompt, generation_config=generation_config)
         print(f"Original Output: {original_output[0]['generated_text']}")
@@ -187,7 +191,7 @@ def main(
                 prompt, return_full_text=False, generation_config=generation_config
             )
             if mode == "synth_span":
-                # switch prompt and completion back. 
+                # switch prompt and completion back.
                 json_obj = {
                     "prompt": original_output[0]["generated_text"],
                     "completion": prompt,

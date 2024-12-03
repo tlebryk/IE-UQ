@@ -32,6 +32,7 @@ def main(
     model_dict: Optional[Union[str, dict]] = None,
     generation_dict: Optional[Union[str, dict]] = None,
     uq_metric: str = "calculate_perplexity_raw",
+    # full_output: bool = False,
 ) -> None:
     if not output_dir:
         # use current datetime
@@ -71,13 +72,23 @@ def main(
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
     tokenizer.pad_token = tokenizer.eos_token
-    train_dataset = train_dataset.map(
-        lambda x: {
-            "formated_chat": tokenizer.apply_chat_template(
-                x["messages"][:-1], tokenize=False, add_generation_prompt=False
-            )
-        }
-    )  # maybe drop messages after this?
+    # use full messages when synth span
+    if mode == "synth_span":
+        train_dataset = train_dataset.map(
+            lambda x: {
+                "formated_chat": tokenizer.apply_chat_template(
+                    x["messages"], tokenize=False, add_generation_prompt=False
+                )
+            }
+        )  # maybe drop messages after this?
+    else:
+        train_dataset = train_dataset.map(
+            lambda x: {
+                "formated_chat": tokenizer.apply_chat_template(
+                    x["messages"][:-1], tokenize=False, add_generation_prompt=False
+                )
+            }
+        )  # maybe drop messages after this?
     train_dataset = train_dataset.map(
         lambda x: {
             "perplexity": uq_utils.calculate_perplexity_raw(

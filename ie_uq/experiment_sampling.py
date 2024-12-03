@@ -1,4 +1,5 @@
-from datasets import load_dataset
+from datasets import concatenate_datasets, load_dataset
+
 import os
 import time
 from ie_uq.data_load import DataLoad
@@ -8,7 +9,7 @@ def main(
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
     sampling_mode: str = "random",  # enum random, active_learning, synthetic
     output_dir: str = None,
-    budget: int = 100
+    budget: int = 100,
     # bnb_dict: Optional[Union[str, dict]] = None,
     # peft_dict: Optional[Union[str, dict]] = None,
     # sft_dict: Optional[Union[str, dict]] = None,
@@ -31,17 +32,35 @@ def main(
         dataset = dataset.sort("perplexity", reverse=True)
         train_dataset = dataset.select(range(budget))
 
-    elif sampling_mode == "random" or sampling_mode == "synthetic":
+    elif sampling_mode == "random":
         dataset = DataLoad.load(dataset_path, split="train")
         # sample 100 spans with a seed
         train_dataset = dataset.shuffle(seed=42).select(range(budget))
+    elif sampling_mode == "synth_span":
+        dataset = DataLoad.load(dataset_path, split="train")
+        # sample 100 spans with a seed
+        train_dataset = dataset.shuffle(seed=42).select(range(budget))
+        # load the synthetic dataset from the output_dir
+        # TODO: figure out the output_dir structure
+        synthetic_dataset = load_dataset(
+            "json",
+            data_files=r"h:\My Drive\nlp\Final_project\IE-UQ\runs\uq-init\perplexity_scores.json",
+            split="train",
+        )
+
+        # synthetic_dataset = load_dataset(
+        #     "json",
+        #     data_files=os.path.join(output_dir, "perplexity_scores.json"),
+        #     split="train",
+        # )
+        dataset = synthetic_dataset.sort("perplexity", reverse=True)
+        dataset = dataset.select(range(budget))
+        dataset = dataset.map(lambda x: {"synthetic": True})
+        train_dataset = concatenate_datasets([train_dataset, dataset])
     else:
         raise ValueError(
             f"Sampling mode {sampling_mode} not supported. Must be one of ['random', 'active_learning', 'synthetic']"
         )
-    if sampling_mode == "synthetic":
-        # get synthetic data and get 100 least perplexity results (optional for now)
-        
     # save the dataset to output_dir as a json_lines
 
     train_dataset.to_json(os.path.join(output_dir, "train_dataset.jsonl"))
