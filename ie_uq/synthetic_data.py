@@ -28,6 +28,10 @@ def save_config(output_dir, filename, config):
             json.dump(vars(config), f, indent=4, default=str)
 
 
+filename = "config.json"
+config = model_dict
+
+
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
@@ -52,15 +56,15 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
-    # save the configs to output_dir: if there is a
-    # TODO: figure out how to save the actual config, not just the dict
-    # save_config(output_dir, "bnb_config.json", bnb_dict)
-    # save_config(output_dir, "sft_config.json", sft_dict)
-    # save_config(output_dir, "peft_config.json", peft_dict)
-    # save_config(output_dir, "model_config.json", model_dict)
-    # save_config(output_dir, "generation_config.json", generation_dict)
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
+    # save the configs to output_dir: if there is a
+    # TODO: figure out how to save the dictionary including defaults
+    save_config(output_dir, "bnb_config.json", bnb_config)
+    save_config(output_dir, "sft_config.json", sft_config)
+    save_config(output_dir, "peft_config.json", peft_dict)
+    save_config(output_dir, "model_config.json", model_config)
+    save_config(output_dir, "generation_config.json", generation_config)
     # TODO: load model config here.
     #  load data
     # THIS PART SHOULD BE PLUGGED IN AND OUT DEPENDING ON THE DATASET
