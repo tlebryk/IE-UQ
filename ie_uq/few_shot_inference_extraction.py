@@ -60,8 +60,6 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
-    model_config = AutoConfig.from_pretrained(model_id)
-    generation_config = ConfigLoader.load_generation(generation_dict, model_config)
 
     example_dataset = DataLoad.load(dataset_path, split="train")
     example_dataset = example_dataset.map(
@@ -123,6 +121,9 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     model = model.eval()
+    model_config = model.config
+    tokenizer_id = model.base_model.config.name_or_path
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
