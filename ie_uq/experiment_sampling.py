@@ -30,16 +30,20 @@ def main(
         )
         # get top 100 scores by perplexity
         dataset = dataset.sort("perplexity", reverse=True)
-        train_dataset = dataset.select(range(budget))
+        train_dataset = dataset.select(range(min(budget, len(dataset))))
 
     elif sampling_mode == "random":
         dataset = DataLoad.load(dataset_path, split="train")
         # sample 100 spans with a seed
-        train_dataset = dataset.shuffle(seed=42).select(range(budget))
+        train_dataset = dataset.shuffle(seed=42).select(
+            range(min(budget, len(dataset)))
+        )
     elif sampling_mode == "synth_span":
         dataset = DataLoad.load(dataset_path, split="train")
         # sample 100 spans with a seed
-        train_dataset = dataset.shuffle(seed=42).select(range(budget))
+        train_dataset = dataset.shuffle(seed=42).select(
+            range(min(budget, len(dataset)))
+        )
         # load the synthetic dataset from the output_dir
         # TODO: figure out the output_dir structure
         synthetic_dataset = load_dataset(
@@ -48,13 +52,9 @@ def main(
             split="train",
         )
 
-        # synthetic_dataset = load_dataset(
-        #     "json",
-        #     data_files=os.path.join(output_dir, "perplexity_scores.json"),
-        #     split="train",
-        # )
-        dataset = synthetic_dataset.sort("perplexity", reverse=True)
-        dataset = dataset.select(range(budget))
+        # Get lowest perplexity synthetic spans
+        dataset = synthetic_dataset.sort("perplexity", reverse=False)
+        dataset = dataset.select(range(min(budget, len(dataset))))
         dataset = dataset.map(lambda x: {"synthetic": True})
         train_dataset = concatenate_datasets([train_dataset, dataset])
     else:
