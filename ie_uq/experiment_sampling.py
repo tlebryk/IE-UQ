@@ -66,5 +66,7 @@ def main(
             f"Sampling mode {sampling_mode} not supported. Must be one of ['random', 'active_learning', 'synthetic']"
         )
     # save the dataset to output_dir as a json_lines
-
-    train_dataset.to_json(os.path.join(output_dir, "train_dataset.jsonl"))
+    # print where are saving to
+    save_path = os.path.join(output_dir, "train_dataset.jsonl")
+    logging.info(f"Saving dataset to {save_path}")
+    train_dataset.to_json(save_path)
