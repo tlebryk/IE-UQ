@@ -20,6 +20,14 @@ from ie_uq.data_load import DataLoad
 from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
 
 
+# save the configs to output_dir
+def save_config(output_dir, filename, config):
+    if config is not None:
+        filepath = os.path.join(output_dir, filename)
+        with open(filepath, "w") as f:
+            json.dump(vars(config), f, indent=4, default=str)
+
+
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
@@ -45,20 +53,12 @@ def main(
         model_dict, device=device, bnb_config=bnb_config
     )
     # save the configs to output_dir: if there is a
-    # variable in the dict, save it as a string
-    with open(os.path.join(output_dir, "sff_config.json"), "w") as f:
-        if not sft_config is None:
-            f.write(str(vars(sft_config)))
-    with open(os.path.join(output_dir, "peft_config.json"), "w") as f:
-        if not peft_config is None:
-            f.write(str(vars(peft_config)))
-    with open(os.path.join(output_dir, "model_config.json"), "w") as f:
-        if not model_dict is None:
-            f.write(str(vars(model_dict)))
-    with open(os.path.join(output_dir, "generation_config.json"), "w") as f:
-        if not generation_dict is None:
-            f.write(str(vars(generation_dict)))
-
+    # TODO: figure out how to save the actual config, not just the dict
+    save_config(output_dir, "bnb_config.json", bnb_dict)
+    save_config(output_dir, "sft_config.json", sft_dict)
+    save_config(output_dir, "peft_config.json", peft_dict)
+    save_config(output_dir, "model_config.json", model_dict)
+    save_config(output_dir, "generation_config.json", generation_dict)
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
     # TODO: load model config here.
