@@ -194,11 +194,11 @@ def main(
                 # switch prompt and completion back.
                 json_obj = {
                     "prompt": original_output[0]["generated_text"],
-                    "completion": prompt,
+                    "completion": train_dataset[i]["prompt"],
                 }
             else:
                 json_obj = {
-                    "prompt": prompt,
+                    "prompt": train_dataset[i]["prompt"],
                     "completion": original_output[0]["generated_text"],
                 }
             json_list.append(json_obj)
