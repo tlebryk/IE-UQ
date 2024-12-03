@@ -54,11 +54,11 @@ def main(
     )
     # save the configs to output_dir: if there is a
     # TODO: figure out how to save the actual config, not just the dict
-    save_config(output_dir, "bnb_config.json", bnb_dict)
-    save_config(output_dir, "sft_config.json", sft_dict)
-    save_config(output_dir, "peft_config.json", peft_dict)
-    save_config(output_dir, "model_config.json", model_dict)
-    save_config(output_dir, "generation_config.json", generation_dict)
+    # save_config(output_dir, "bnb_config.json", bnb_dict)
+    # save_config(output_dir, "sft_config.json", sft_dict)
+    # save_config(output_dir, "peft_config.json", peft_dict)
+    # save_config(output_dir, "model_config.json", model_dict)
+    # save_config(output_dir, "generation_config.json", generation_dict)
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
     # TODO: load model config here.
