@@ -28,10 +28,6 @@ def save_config(output_dir, filename, config):
             json.dump(vars(config), f, indent=4, default=str)
 
 
-filename = "config.json"
-config = model_dict
-
-
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
