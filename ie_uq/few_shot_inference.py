@@ -60,7 +60,9 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
-    logging.info
+    logging.debug(f"{model_dict=}")
+    logging.debug(f"{bnb_dict=}")
+    logging.debug(f"{generation_dict=}")
 
     example_dataset = DataLoad.load(dataset_path, split="train")
     example_dataset = example_dataset.map(
@@ -147,11 +149,11 @@ def main(
         # remove_columns=dataset.features,
         batched=False,
     )
+    # print 1 datapoint
+    logging.info("training dataset sample:", train_dataset[0])
     # URL of the JSON data
     # url = 'https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json'
 
-    # Fetch JSON data from the URL
-    # TODO: refactor to accept local paths too.
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     model = model.eval()
     model_config = model.config
@@ -162,20 +164,34 @@ def main(
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
-    with torch.no_grad():
-        tokenizer.pad_token = tokenizer.eos_token
-        pipe = pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            generation_config=generation_config,
-        )
+    tokenizer.pad_token = tokenizer.eos_token
+    pipe = pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer,
+        generation_config=generation_config,
+    )
+    # -1 is assuming last message is the actual assistant completion
+    # we want to estaimate that completion.
+    train_dataset = train_dataset.map(
+        lambda example: {
+            "llm_input": pipe.tokenizer.apply_chat_template(
+                example["messages"][:-1],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+        },
+        # remove_columns=dataset.features,
+        batched=False,
+    )
 
-        prompt = pipe.tokenizer.apply_chat_template(
-            train_dataset[0]["messages"][:-1],
-            tokenize=False,
-            add_generation_prompt=True,
-        )
+    prompt = pipe.tokenizer.apply_chat_template(
+        train_dataset[0]["llm_input"],
+        tokenize=False,
+        add_generation_prompt=True,
+    )
+
+    with torch.no_grad():
         original_output = pipe(prompt, generation_config=generation_config)
         print(f"Original Output: {original_output[0]['generated_text']}")
 
@@ -183,7 +199,7 @@ def main(
         json_list = []
         for i in tqdm(range(max_index)):
             prompt = pipe.tokenizer.apply_chat_template(
-                train_dataset[i]["messages"][:-1],
+                train_dataset[i]["llm_input"],
                 tokenize=False,
                 add_generation_prompt=True,
             )

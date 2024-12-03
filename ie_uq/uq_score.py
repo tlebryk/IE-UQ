@@ -8,6 +8,7 @@ from transformers import (
     pipeline,
 )
 import os
+import logging
 import torch
 import time
 
@@ -53,16 +54,10 @@ def main(
     #  load data
     # THIS PART SHOULD BE PLUGGED IN AND OUT DEPENDING ON THE DATASET
 
-    dataset = DataLoad.load(dataset_path, split="train")
+    train_dataset = DataLoad.load(dataset_path, split="train")
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
     dataset = dataset.map(formater, batched=False)
     # if no mode, assume extraction.
-    # train test split dataset
-    # TODO: clean this up...
-    split_dataset = dataset.train_test_split(test_size=0.1)
-    train_dataset = split_dataset["train"]
-    test_dataset = split_dataset["test"]
-
     # get model_config
 
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
@@ -72,6 +67,12 @@ def main(
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
     tokenizer.pad_token = tokenizer.eos_token
+    uq_estimator = getattr(uq_utils, uq_metric)
+    if not uq_estimator:
+        logging.warning(
+            f"did not find requested metric {uq_metric}; using calculate_perplexity_raw as default"
+        )
+        uq_estimator = uq_utils.calculate_perplexity_raw
     # use full messages when synth span
     if mode == "synth_span":
         train_dataset = train_dataset.map(
@@ -90,20 +91,11 @@ def main(
             }
         )  # maybe drop messages after this?
     train_dataset = train_dataset.map(
-        lambda x: {
-            "perplexity": uq_utils.calculate_perplexity_raw(
-                x["formated_chat"], tokenizer, model
-            )
-        }
+        lambda x: {"perplexity": uq_estimator(x["formated_chat"], tokenizer, model)}
     )
 
     # save the perplexity scores
     train_dataset.to_json(os.path.join(output_dir, "perplexity_scores.json"))
-    # get the n highest perplexity elements
-    # n = 5
-    # perplexity_scores = train_dataset.sort("perplexity", reverse=True)
-    # print(perplexity_scores[:n])
-    # get the n highest perplexity elements
 
 
 if __name__ == "__main__":

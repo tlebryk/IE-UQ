@@ -107,7 +107,7 @@ def main(
     collator = DataCollatorForCompletionOnlyLM(
         response_template_ids, tokenizer=tokenizer, padding_free=True
     )
-
+    # TODO: preformat inputs...
     trainer = SFTTrainer(
         args=sft_config,
         model=pipe.model,

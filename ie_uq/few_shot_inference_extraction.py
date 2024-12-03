@@ -1,5 +1,5 @@
 """THe inference script specifically for extraction on the NERRE dataset. 
-
+Basically the same as few_shot_inference but loads the json rather than the json lines. 
 """
 
 from langchain.prompts import PromptTemplate, FewShotPromptTemplate
@@ -26,6 +26,7 @@ from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
 import re
+import logging
 
 
 # TODO: move me to shared library code
@@ -135,6 +136,8 @@ def main(
         tokenizer=tokenizer,
         generation_config=generation_config,
     )
+    logging.info("training dataset sample:", data[0])
+
     with torch.no_grad():
         # Iterate over each dictionary in the list
         # TODO: pack this into a dataset for generation efficiency.

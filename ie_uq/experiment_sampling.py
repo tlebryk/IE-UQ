@@ -10,18 +10,12 @@ def main(
     sampling_mode: str = "random",  # enum random, active_learning, synthetic
     output_dir: str = None,
     budget: int = 100,
-    # bnb_dict: Optional[Union[str, dict]] = None,
-    # peft_dict: Optional[Union[str, dict]] = None,
-    # sft_dict: Optional[Union[str, dict]] = None,
-    # model_dict: Optional[Union[str, dict]] = None,
-    # generation_dict: Optional[Union[str, dict]] = None,
 ) -> None:
     if not output_dir:
         # use current datetime
         output_dir = f"outputs/{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     os.makedirs(output_dir, exist_ok=True)
     if sampling_mode == "active_learning":
-        # train_dataset.to_json(os.path.join(output_dir, "perplexity_scores.json"))
         # load scores:
         dataset = load_dataset(
             "json",
@@ -46,11 +40,6 @@ def main(
         )
         # load the synthetic dataset from the output_dir
         # TODO: figure out the output_dir structure
-        # synthetic_dataset = load_dataset(
-        #     "json",
-        #     data_files=r"h:\My Drive\nlp\Final_project\IE-UQ\runs\uq-init\perplexity_scores.json",
-        #     split="train",
-        # )
         synthetic_dataset = load_dataset(
             "json",
             data_files=os.path.join(output_dir, "perplexity_scores.json"),
