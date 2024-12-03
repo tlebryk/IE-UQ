@@ -52,15 +52,13 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
-    model_config = AutoConfig.from_pretrained(model_id)
-    generation_config = ConfigLoader.load_generation(generation_dict, model_config)
+
     # save the configs to output_dir: if there is a
     # TODO: figure out how to save the dictionary including defaults
     save_config(output_dir, "bnb_config.json", bnb_config)
     save_config(output_dir, "sft_config.json", sft_config)
     save_config(output_dir, "peft_config.json", peft_dict)
-    save_config(output_dir, "model_config.json", model_config)
-    save_config(output_dir, "generation_config.json", generation_config)
+
     # TODO: load model config here.
     #  load data
     # THIS PART SHOULD BE PLUGGED IN AND OUT DEPENDING ON THE DATASET
@@ -78,7 +76,12 @@ def main(
     # get model_config
 
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model_config = model.config  # AutoConfig.from_pretrained(tokenizer_id)
+    tokenizer_id = model_config.name_or_path
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
+    generation_config = ConfigLoader.load_generation(generation_dict, model_config)
+    save_config(output_dir, "model_config.json", model_config)
+    save_config(output_dir, "generation_config.json", generation_config)
     # reset model to use default chat template
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
