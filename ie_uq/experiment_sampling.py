@@ -46,12 +46,16 @@ def main(
         )
         # load the synthetic dataset from the output_dir
         # TODO: figure out the output_dir structure
+        # synthetic_dataset = load_dataset(
+        #     "json",
+        #     data_files=r"h:\My Drive\nlp\Final_project\IE-UQ\runs\uq-init\perplexity_scores.json",
+        #     split="train",
+        # )
         synthetic_dataset = load_dataset(
             "json",
-            data_files=r"h:\My Drive\nlp\Final_project\IE-UQ\runs\uq-init\perplexity_scores.json",
+            data_files=os.path.join(output_dir, "perplexity_scores.json"),
             split="train",
         )
-
         # Get lowest perplexity synthetic spans
         dataset = synthetic_dataset.sort("perplexity", reverse=False)
         dataset = dataset.select(range(min(budget, len(dataset))))
