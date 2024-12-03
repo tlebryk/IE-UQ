@@ -44,6 +44,17 @@ def main(
     model_dict = ConfigLoader.load_model_dict(
         model_dict, device=device, bnb_config=bnb_config
     )
+    # save the configs to output_dir: if there is a
+    # variable in the dict, save it as a string
+    with open(os.path.join(output_dir, "sff_config.json"), "w") as f:
+        f.write(str(vars(sft_config)))
+    with open(os.path.join(output_dir, "peft_config.json"), "w") as f:
+        f.write(str(vars(peft_config)))
+    with open(os.path.join(output_dir, "model_config.json"), "w") as f:
+        f.write(str(vars(model_dict)))
+    with open(os.path.join(output_dir, "generation_config.json"), "w") as f:
+        f.write(str(vars(generation_dict)))
+
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
     # TODO: load model config here.
