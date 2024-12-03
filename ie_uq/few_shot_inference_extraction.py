@@ -118,7 +118,6 @@ def main(
     data = response.json()
     if quick_mode:
         data = data[:1]
-    tokenizer = AutoTokenizer.from_pretrained(model_id)
     model = AutoModelForCausalLM.from_pretrained(model_id, **model_dict)
     model = model.eval()
     model_config = model.config
