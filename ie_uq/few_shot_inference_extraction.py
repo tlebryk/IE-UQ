@@ -127,6 +127,8 @@ def main(
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
     tokenizer.pad_token = tokenizer.eos_token
+    generation_config = ConfigLoader.load_generation(generation_dict, model_config)
+
     pipe = pipeline(
         "text-generation",
         model=model,
