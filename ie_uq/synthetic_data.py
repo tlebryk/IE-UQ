@@ -47,13 +47,17 @@ def main(
     # save the configs to output_dir: if there is a
     # variable in the dict, save it as a string
     with open(os.path.join(output_dir, "sff_config.json"), "w") as f:
-        f.write(str(vars(sft_config)))
+        if not sft_config is None:
+            f.write(str(vars(sft_config)))
     with open(os.path.join(output_dir, "peft_config.json"), "w") as f:
-        f.write(str(vars(peft_config)))
+        if not peft_config is None:
+            f.write(str(vars(peft_config)))
     with open(os.path.join(output_dir, "model_config.json"), "w") as f:
-        f.write(str(vars(model_dict)))
+        if not model_dict is None:
+            f.write(str(vars(model_dict)))
     with open(os.path.join(output_dir, "generation_config.json"), "w") as f:
-        f.write(str(vars(generation_dict)))
+        if not generation_dict is None:
+            f.write(str(vars(generation_dict)))
 
     model_config = AutoConfig.from_pretrained(model_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
