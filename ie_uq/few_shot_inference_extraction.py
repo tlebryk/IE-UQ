@@ -47,6 +47,7 @@ def main(
     model_dict: Optional[Union[str, dict]] = None,
     generation_dict: Optional[Union[str, dict]] = None,
     quick_mode: bool = False,
+    n_samples: int = 2,
 ) -> None:
     if not output_dir:
         # use current datetime
@@ -82,7 +83,6 @@ def main(
     system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
     examples_list = example_dataset.to_pandas().to_dict(orient="records")
-    n_samples = 2
 
     # Sample function that processes sentence_text and returns llm_completion
     def example_llm_function(sentence_text):
