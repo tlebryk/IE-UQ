@@ -123,6 +123,7 @@ def main(
     # tokenizer.chat_template = None
     # model, tokenizer = setup_chat_format(model, tokenizer)
     tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token_id = tokenizer.eos_token_id
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
     pipe = pipeline(
         "text-generation",
@@ -173,7 +174,7 @@ def main(
 
                 # Update the original doping_sentence dictionaries with results
                 for i, dopant_sentence in enumerate(batch):
-                    generation = generations[i]
+                    generation = generations[i][0]
                     llm_completion = get_text_between_curly_braces(
                         generation["generated_text"]
                     )
