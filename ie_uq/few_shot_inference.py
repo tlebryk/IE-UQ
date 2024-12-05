@@ -180,11 +180,12 @@ def main(
         batched=False,
     )
 
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["llm_input"],
-        tokenize=False,
-        add_generation_prompt=True,
-    )
+    prompt = train_dataset[0]["llm_input"]
+    # pipe.tokenizer.apply_chat_template(
+    #     ,
+    #     tokenize=False,
+    #     add_generation_prompt=True,
+    # )
 
     with torch.no_grad():
         original_output = pipe(prompt, generation_config=generation_config)
