@@ -25,6 +25,8 @@ from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
 import logging
+from datasets import Dataset
+from transformers.pipelines.pt_utils import KeyDataset
 
 
 # Function to split data into batches
@@ -137,7 +139,7 @@ def main(
     if quick_mode:
         data = data[:1]
     logging.info("training dataset sample:", data[0])
-    batch_size = 4
+    batch_size = 128
     # all_doping_sentences = []
     # for entry in data:
     #     for dopant_sentence in entry.get("doping_sentences", []):
@@ -164,13 +166,21 @@ def main(
                         add_generation_prompt=True,
                     )
                     batch_prompts.append(prompt)
+                # Create a huggingface dataset out of batch_prompts
 
+                dataset = Dataset.from_dict({"prompts": batch_prompts})
                 # Run inference for the batch
-                generations = pipe(
-                    batch_prompts,
-                    return_full_text=False,
-                    generation_config=generation_config,
-                )
+                generations = [
+                    x
+                    for x in pipe(
+                        KeyDataset(
+                            dataset, "prompts"
+                        ),  # if dataset else batch_prompts,
+                        return_full_text=False,
+                        generation_config=generation_config,
+                        pad_token_id=tokenizer.eos_token_id,
+                    )
+                ]
 
                 # Update the original doping_sentence dictionaries with results
                 for i, dopant_sentence in enumerate(batch):
