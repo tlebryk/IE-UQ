@@ -175,7 +175,7 @@ def main(
         batched=False,
     )
 
-    prompt = train_dataset[0]
+    prompt = train_dataset[0]["llm_input"]
     # pipe.tokenizer.apply_chat_template(
     #     ,
     #     tokenize=False,
