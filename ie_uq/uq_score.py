@@ -56,7 +56,7 @@ def main(
 
     train_dataset = DataLoad.load(dataset_path, split="train")
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
-    dataset = dataset.map(formater, batched=False)
+    train_dataset = train_dataset.map(formater, batched=False)
     # if no mode, assume extraction.
     # get model_config
 
