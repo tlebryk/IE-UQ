@@ -6,17 +6,17 @@ from langchain.prompts import PromptTemplate, FewShotPromptTemplate
 import random
 
 from ie_uq.data_load import DataLoad
-from functools import partial
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     AutoConfig,
     pipeline,
 )
-from datasets import Dataset
 from ie_uq.config_utils import ConfigLoader
 from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
+from ie_uq.extraction_utils import get_text_between_curly_braces
+
 from typing import Optional, Union
 import os
 import torch
@@ -25,13 +25,7 @@ import json
 from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
-import re
 import logging
-
-
-def get_text_between_curly_braces(input_string):
-    match = re.search(r"\{.*\}", input_string, re.DOTALL)
-    return match.group(0) if match else None
 
 
 def main(
