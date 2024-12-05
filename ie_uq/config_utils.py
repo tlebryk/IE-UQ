@@ -71,7 +71,7 @@ class ConfigLoader:
     def load_sft(config, device=None, output_dir=None):
         default = {
             "output_dir": output_dir,  # output directory
-            "num_train_epochs": 3,  # number of training epochs
+            "num_train_epochs": 5,  # number of training epochs
             "per_device_train_batch_size": 4,  # batch size per device during training
             "gradient_accumulation_steps": 2,  # number of steps before performing a backward/update pass
             "gradient_checkpointing": True,  # use gradient checkpointing to save memory
