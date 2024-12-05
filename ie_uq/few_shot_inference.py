@@ -83,8 +83,8 @@ def main(
     dataset = DataLoad.load(inference_dataset_path, split="train")
     dataset = dataset.map(
         lambda x: {
-            "prompt": x["prompt"].replace("{", "{{").replace("}", "}}"),
-            "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
+            "prompt": x["prompt"],  # .replace("{", "{{").replace("}", "}}"),
+            "completion": x["completion"],  # .replace("{", "{{").replace("}", "}}"),
         },
     )
     if quick_mode:
@@ -106,11 +106,6 @@ def main(
         )
 
     examples_list = example_dataset.to_pandas().to_dict(orient="records")
-
-    # Sample function that processes sentence_text and returns llm_completion
-    def example_llm_function(sentence_text):
-        # Replace this function with the actual logic or computation
-        return ' {\n "basemats": {\n  "b0": "ZnO"\n },\n "dopants": {\n  "d0": "Al",\n  "d1": "Ga",\n  "d2": "In"\n },\n "dopants2basemats": {\n  "d0": [\n   "b0"\n  ],\n  "d1": [\n   "b0"\n  ],\n  "d2": [\n   "b0"\n  ]\n }\n}'
 
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
 
@@ -145,7 +140,7 @@ def main(
         batched=False,
     )
     # print 1 datapoint
-    logging.info("training dataset sample:", train_dataset[0])
+    print(f"training dataset sample:", train_dataset[0])
     # URL of the JSON data
     # url = 'https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json'
 
@@ -180,7 +175,7 @@ def main(
         batched=False,
     )
 
-    prompt = train_dataset[0]["llm_input"]
+    prompt = train_dataset[0]
     # pipe.tokenizer.apply_chat_template(
     #     ,
     #     tokenize=False,
@@ -192,13 +187,16 @@ def main(
         print(f"Original Output: {original_output[0]['generated_text']}")
         generations = [
             x
-            for x in pipe(
-                KeyDataset(
-                    train_dataset, "llm_input"
-                ),  # if dataset else batch_prompts,
-                return_full_text=False,
-                generation_config=generation_config,
-                pad_token_id=tokenizer.eos_token_id,
+            for x in tqdm(
+                pipe(
+                    KeyDataset(
+                        train_dataset, "llm_input"
+                    ),  # if dataset else batch_prompts,
+                    return_full_text=False,
+                    generation_config=generation_config,
+                    pad_token_id=tokenizer.eos_token_id,
+                ),
+                total=len(train_dataset),  # Adjust this based on your dataset
             )
         ]
         json_list = []
@@ -219,7 +217,7 @@ def main(
                 # switch prompt and completion back.
                 json_obj = {
                     "prompt": g[0]["generated_text"],
-                    "completion": train_dataset[i]["prompt"],
+                    "completion": train_dataset[i]["completion"],
                 }
             else:
                 json_obj = {

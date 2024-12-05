@@ -8,7 +8,7 @@ class DataPreprocessOai:
         " I will give you a json and you will give me a sentence containing its elements."
         " In other words, if you were asked to extract the doping information"
         " from the sentence you created it should extract the json I give you."
-        " Respond with the exact answer only, no explanations or prefixes."
+        " Respond with the exact answer only, no explanations or prefixes. Be concise."
     )
     synth_json_system_prompt = (
         "You are a helpful assistant that generates json."
