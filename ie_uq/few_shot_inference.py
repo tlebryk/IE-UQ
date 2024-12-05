@@ -193,7 +193,7 @@ def main(
         generations = [
             x
             for x in pipe(
-                KeyDataset(dataset, "prompts"),  # if dataset else batch_prompts,
+                KeyDataset(dataset, "llm_input"),  # if dataset else batch_prompts,
                 return_full_text=False,
                 generation_config=generation_config,
                 pad_token_id=tokenizer.eos_token_id,
