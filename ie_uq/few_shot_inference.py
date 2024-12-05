@@ -40,6 +40,7 @@ def main(
     model_dict: Optional[Union[str, dict]] = None,
     generation_dict: Optional[Union[str, dict]] = None,
     quick_mode: bool = False,
+    n_samples: int = 2,
 ) -> None:
     if not output_dir:
         # use current datetime
@@ -78,7 +79,6 @@ def main(
     formater = getattr(DataPreprocessOai, mode, lambda x: x)
     system_prompt = getattr(DataPreprocessOai, mode + "_system_prompt", None)
 
-    n_samples = 2
     dataset = DataLoad.load(inference_dataset_path, split="train")
     dataset = dataset.map(
         lambda x: {
