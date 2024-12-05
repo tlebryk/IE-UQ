@@ -26,6 +26,7 @@ from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
 import logging
+from transformers.pipelines.pt_utils import KeyDataset
 
 
 def main(
@@ -188,28 +189,39 @@ def main(
     with torch.no_grad():
         original_output = pipe(prompt, generation_config=generation_config)
         print(f"Original Output: {original_output[0]['generated_text']}")
-
-        max_index = 10
+        generations = [
+            x
+            for x in pipe(
+                KeyDataset(dataset, "prompts"),  # if dataset else batch_prompts,
+                return_full_text=False,
+                generation_config=generation_config,
+                pad_token_id=tokenizer.eos_token_id,
+            )
+        ]
         json_list = []
-        for i in tqdm(range(max_index)):
-            prompt = pipe.tokenizer.apply_chat_template(
-                train_dataset[i]["llm_input"],
-                tokenize=False,
-                add_generation_prompt=True,
-            )
-            original_output = pipe(
-                prompt, return_full_text=False, generation_config=generation_config
-            )
+        for i, g in enumerate(generations):
+            # generation = generations[i][0]
+
+            # max_index = 10
+            # for i in tqdm(range(max_index)):
+            # prompt = pipe.tokenizer.apply_chat_template(
+            #     train_dataset[i]["llm_input"],
+            #     tokenize=False,
+            #     add_generation_prompt=True,
+            # )
+            # original_output = pipe(
+            #     prompt, return_full_text=False, generation_config=generation_config
+            # )
             if mode == "synth_span":
                 # switch prompt and completion back.
                 json_obj = {
-                    "prompt": original_output[0]["generated_text"],
+                    "prompt": g[0]["generated_text"],
                     "completion": train_dataset[i]["prompt"],
                 }
             else:
                 json_obj = {
                     "prompt": train_dataset[i]["prompt"],
-                    "completion": original_output[0]["generated_text"],
+                    "completion": g[0]["generated_text"],
                 }
             json_list.append(json_obj)
         # iterate through training dataset and
