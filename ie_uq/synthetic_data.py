@@ -92,14 +92,19 @@ def main(
         tokenizer=tokenizer,
         generation_config=generation_config,
     )
+    try:
+        with torch.amp.autocast(device_type="cuda", enabled=True):
 
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
-    )
-    original_output = pipe(prompt, generation_config=generation_config)
+            prompt = pipe.tokenizer.apply_chat_template(
+                train_dataset[0]["messages"][:-1],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            original_output = pipe(prompt, generation_config=generation_config)
 
-    print(f"Original Output: {original_output[0]['generated_text']}")
-
+            print(f"Original Output: {original_output[0]['generated_text']}")
+    except Exception as e:
+        print(e)
     response_template = "<|start_header_id|>assistant<|end_header_id|>"
     response_template_ids = tokenizer.encode(
         response_template, add_special_tokens=False
@@ -121,14 +126,19 @@ def main(
     trainer.train()
     trainer.model.save_pretrained(output_dir)
     # load the saved adapter
+    try:
+        with torch.amp.autocast(device_type="cuda", enabled=True):
 
-    # we need to save this to somewhere more permenant eventually...
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["messages"][:-1], tokenize=False, add_generation_prompt=True
-    )
-    finetuned_output = pipe(prompt, generation_config=generation_config)
-
-    print(f"Finetuned Output: {finetuned_output[0]['generated_text']}")
+            # we need to save this to somewhere more permenant eventually...
+            prompt = pipe.tokenizer.apply_chat_template(
+                train_dataset[0]["messages"][:-1],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+            finetuned_output = pipe(prompt, generation_config=generation_config)
+            print(f"Finetuned Output: {finetuned_output[0]['generated_text']}")
+    except Exception as e:
+        print(e)
 
 
 # TODO:
