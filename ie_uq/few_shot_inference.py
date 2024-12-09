@@ -6,17 +6,17 @@ from langchain.prompts import PromptTemplate, FewShotPromptTemplate
 import random
 
 from ie_uq.data_load import DataLoad
-from functools import partial
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     AutoConfig,
     pipeline,
 )
-from datasets import Dataset
 from ie_uq.config_utils import ConfigLoader
 from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
+from ie_uq.extraction_utils import get_text_between_curly_braces
+
 from typing import Optional, Union
 import os
 import torch
@@ -25,13 +25,8 @@ import json
 from tqdm import tqdm
 import requests
 from doping.step2_train_predict import decode_entities_from_llm_completion
-import re
 import logging
-
-
-def get_text_between_curly_braces(input_string):
-    match = re.search(r"\{.*\}", input_string, re.DOTALL)
-    return match.group(0) if match else None
+from transformers.pipelines.pt_utils import KeyDataset
 
 
 def main(
@@ -88,8 +83,8 @@ def main(
     dataset = DataLoad.load(inference_dataset_path, split="train")
     dataset = dataset.map(
         lambda x: {
-            "prompt": x["prompt"].replace("{", "{{").replace("}", "}}"),
-            "completion": x["completion"].replace("{", "{{").replace("}", "}}"),
+            "prompt": x["prompt"],  # .replace("{", "{{").replace("}", "}}"),
+            "completion": x["completion"],  # .replace("{", "{{").replace("}", "}}"),
         },
     )
     if quick_mode:
@@ -111,11 +106,6 @@ def main(
         )
 
     examples_list = example_dataset.to_pandas().to_dict(orient="records")
-
-    # Sample function that processes sentence_text and returns llm_completion
-    def example_llm_function(sentence_text):
-        # Replace this function with the actual logic or computation
-        return ' {\n "basemats": {\n  "b0": "ZnO"\n },\n "dopants": {\n  "d0": "Al",\n  "d1": "Ga",\n  "d2": "In"\n },\n "dopants2basemats": {\n  "d0": [\n   "b0"\n  ],\n  "d1": [\n   "b0"\n  ],\n  "d2": [\n   "b0"\n  ]\n }\n}'
 
     def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
 
@@ -150,7 +140,7 @@ def main(
         batched=False,
     )
     # print 1 datapoint
-    logging.info("training dataset sample:", train_dataset[0])
+    print(f"training dataset sample:", train_dataset[0])
     # URL of the JSON data
     # url = 'https://raw.githubusercontent.com/tlebryk/NERRE/refs/heads/main/doping/data/test.json'
 
@@ -185,37 +175,54 @@ def main(
         batched=False,
     )
 
-    prompt = pipe.tokenizer.apply_chat_template(
-        train_dataset[0]["llm_input"],
-        tokenize=False,
-        add_generation_prompt=True,
-    )
+    prompt = train_dataset[0]["llm_input"]
+    # pipe.tokenizer.apply_chat_template(
+    #     ,
+    #     tokenize=False,
+    #     add_generation_prompt=True,
+    # )
 
     with torch.no_grad():
         original_output = pipe(prompt, generation_config=generation_config)
         print(f"Original Output: {original_output[0]['generated_text']}")
-
-        max_index = 10
+        generations = [
+            x
+            for x in tqdm(
+                pipe(
+                    KeyDataset(
+                        train_dataset, "llm_input"
+                    ),  # if dataset else batch_prompts,
+                    return_full_text=False,
+                    generation_config=generation_config,
+                    pad_token_id=tokenizer.eos_token_id,
+                ),
+                total=len(train_dataset),  # Adjust this based on your dataset
+            )
+        ]
         json_list = []
-        for i in tqdm(range(max_index)):
-            prompt = pipe.tokenizer.apply_chat_template(
-                train_dataset[i]["llm_input"],
-                tokenize=False,
-                add_generation_prompt=True,
-            )
-            original_output = pipe(
-                prompt, return_full_text=False, generation_config=generation_config
-            )
+        for i, g in enumerate(generations):
+            # generation = generations[i][0]
+
+            # max_index = 10
+            # for i in tqdm(range(max_index)):
+            # prompt = pipe.tokenizer.apply_chat_template(
+            #     train_dataset[i]["llm_input"],
+            #     tokenize=False,
+            #     add_generation_prompt=True,
+            # )
+            # original_output = pipe(
+            #     prompt, return_full_text=False, generation_config=generation_config
+            # )
             if mode == "synth_span":
                 # switch prompt and completion back.
                 json_obj = {
-                    "prompt": original_output[0]["generated_text"],
-                    "completion": train_dataset[i]["prompt"],
+                    "prompt": g[0]["generated_text"],
+                    "completion": train_dataset[i]["completion"],
                 }
             else:
                 json_obj = {
                     "prompt": train_dataset[i]["prompt"],
-                    "completion": original_output[0]["generated_text"],
+                    "completion": g[0]["generated_text"],
                 }
             json_list.append(json_obj)
         # iterate through training dataset and
