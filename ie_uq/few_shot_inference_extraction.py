@@ -144,58 +144,43 @@ def main(
     # for entry in data:
     #     for dopant_sentence in entry.get("doping_sentences", []):
     #         all_doping_sentences.append((dopant_sentence, entry))
+
     with torch.no_grad():
         # Iterate over each dictionary in the list
-        # TODO: pack this into a dataset for generation efficiency.
         for entry in tqdm(data):
             # Iterate over each doping_sentence in the nested list
             doping_sentences = entry.get("doping_sentences", [])
-            for batch in tqdm(batchify(doping_sentences, batch_size)):
-                # Prepare prompts for the batch
-                batch_prompts = []
-                for dopant_sentence in batch:
-                    sentence_text = dopant_sentence.get("sentence_text", "")
-                    system_prompt = add_few_shot_prompt(examples_list, n_samples)
-                    messages = formater(
-                        {"prompt": sentence_text, "completion": ""},
-                        system_prompt=system_prompt,
-                    )
-                    prompt = pipe.tokenizer.apply_chat_template(
-                        messages["messages"][:-1],
-                        tokenize=False,
-                        add_generation_prompt=True,
-                    )
-                    batch_prompts.append(prompt)
-                # Create a huggingface dataset out of batch_prompts
+            for dopant_sentence in tqdm(doping_sentences):
+                # Prepare the prompt for the single sentence
+                sentence_text = dopant_sentence.get("sentence_text", "")
+                system_prompt = add_few_shot_prompt(examples_list, n_samples)
+                messages = formater(
+                    {"prompt": sentence_text, "completion": ""},
+                    system_prompt=system_prompt,
+                )
+                prompt = pipe.tokenizer.apply_chat_template(
+                    messages["messages"][:-1],
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
 
-                dataset = Dataset.from_dict({"prompts": batch_prompts})
-                # Run inference for the batch
-                generations = [
-                    x
-                    for x in pipe(
-                        KeyDataset(
-                            dataset, "prompts"
-                        ),  # if dataset else batch_prompts,
-                        return_full_text=False,
-                        generation_config=generation_config,
-                        pad_token_id=tokenizer.eos_token_id,
-                    )
-                ]
+                # Run inference for the single sentence
+                generation = pipe(
+                    prompt,
+                    return_full_text=False,
+                    generation_config=generation_config,
+                    pad_token_id=tokenizer.eos_token_id,
+                )[0]
 
-                # Update the original doping_sentence dictionaries with results
-                for i, dopant_sentence in enumerate(batch):
-                    generation = generations[i][0]
-                    llm_completion = get_text_between_curly_braces(
-                        generation["generated_text"]
-                    )
-                    dopant_sentence["llm_completion"] = llm_completion
-                    ents = decode_entities_from_llm_completion(
-                        dopant_sentence["llm_completion"], fmt="json"
-                    )
-                    dopant_sentence["entity_graph_raw"] = ents
-
-                    # del messages, prompt, generation, llm_completion, ents
-                    # torch.cuda.empty_cache()
+                # Process the generated output
+                llm_completion = get_text_between_curly_braces(
+                    generation["generated_text"]
+                )
+                dopant_sentence["llm_completion"] = llm_completion
+                ents = decode_entities_from_llm_completion(
+                    dopant_sentence["llm_completion"], fmt="json"
+                )
+                dopant_sentence["entity_graph_raw"] = ents
 
     # Save the updated JSON data to a new file
     output_path = os.path.join(output_dir, "fewshot2output.json")

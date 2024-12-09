@@ -107,6 +107,7 @@ class ConfigLoader:
             "device_map": "auto",
             "torch_dtype": torch.bfloat16,
             "quantization_config": bnb_config,
+            "trust_remote_code": True,
             #  attn_implementation="flash_attention_2",
         }
 
