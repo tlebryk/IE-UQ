@@ -1,0 +1,10 @@
+metric,entity,score
+precision,basemats,0.3225806451612903
+recall,basemats,0.2247191011235955
+f1,basemats,0.26490066225165565
+precision,dopants,0.19047619047619047
+recall,dopants,0.09523809523809523
+f1,dopants,0.12698412698412698
+precision,link triplets,0.11764705882352941
+recall,link triplets,0.07017543859649122
+f1,link triplets,0.0879120879120879
