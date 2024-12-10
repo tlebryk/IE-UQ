@@ -89,7 +89,11 @@ def main(
         # Replace this function with the actual logic or computation
         return ' {\n "basemats": {\n  "b0": "ZnO"\n },\n "dopants": {\n  "d0": "Al",\n  "d1": "Ga",\n  "d2": "In"\n },\n "dopants2basemats": {\n  "d0": [\n   "b0"\n  ],\n  "d1": [\n   "b0"\n  ],\n  "d2": [\n   "b0"\n  ]\n }\n}'
 
-    def add_few_shot_prompt(examples_list=examples_list, n_samples=n_samples):
+    def add_few_shot_prompt(
+        examples_list=examples_list,
+        n_samples=n_samples,
+        system_prompt=system_prompt,
+    ):
         examples = random.sample(examples_list, n_samples)
         # Create the FewShotPromptTemplate without additional input variables
         few_shot_prompt = FewShotPromptTemplate(
@@ -153,10 +157,10 @@ def main(
             for dopant_sentence in tqdm(doping_sentences):
                 # Prepare the prompt for the single sentence
                 sentence_text = dopant_sentence.get("sentence_text", "")
-                system_prompt = add_few_shot_prompt(examples_list, n_samples)
+                s_prompt = add_few_shot_prompt(examples_list, n_samples)
                 messages = formater(
                     {"prompt": sentence_text, "completion": ""},
-                    system_prompt=system_prompt,
+                    system_prompt=s_prompt,
                 )
                 prompt = pipe.tokenizer.apply_chat_template(
                     messages["messages"][:-1],
@@ -171,7 +175,8 @@ def main(
                     generation_config=generation_config,
                     pad_token_id=tokenizer.eos_token_id,
                 )[0]
-
+                dopant_sentence["raw_output"] = generation
+                dopant_sentence["full_prompt"] = prompt
                 # Process the generated output
                 llm_completion = get_text_between_curly_braces(
                     generation["generated_text"]
@@ -181,7 +186,7 @@ def main(
                     dopant_sentence["llm_completion"], fmt="json"
                 )
                 dopant_sentence["entity_graph_raw"] = ents
-
+            logging.info(f"{dopant_sentence=}")
     # Save the updated JSON data to a new file
     output_path = os.path.join(output_dir, "fewshot2output.json")
     with open(output_path, "w") as outfile:
