@@ -1,3 +1,7 @@
+"""Barplots for f1, precision, and recall for each entity (dopant, basemat, link triplets) 
+for each trial (random baseline, active learning, synthetic span generation).
+"""
+
 # %%
 import pandas as pd
 import seaborn as sns
