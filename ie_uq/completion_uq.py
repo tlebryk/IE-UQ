@@ -8,7 +8,7 @@ from transformers import (
     pipeline,
 )
 
-    import pandas as pd
+import pandas as pd
 
 import logging
 import os
@@ -22,7 +22,10 @@ from ie_uq.config_utils import ConfigLoader
 from ie_uq.data_preprocess import DataPreprocessOai
 from ie_uq.data_load import DataLoad
 from trl import SFTTrainer, setup_chat_format, DataCollatorForCompletionOnlyLM
+
 tqdm.pandas()
+
+
 def main(
     model_id: str = "meta-llama/Llama-3.2-1B-Instruct",
     dataset_path: str = "https://raw.githubusercontent.com/tlebryk/IE-UQ/refs/heads/develop/data/cleaned_dataset.jsonl",
@@ -49,13 +52,18 @@ def main(
     tokenizer_id = model_config.name_or_path
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_id)
     generation_config = ConfigLoader.load_generation(generation_dict, model_config)
-        
+
     for entry in tqdm(dct):
         for doping_sentence in tqdm(entry["doping_sentences"]):
-            full_text = doping_sentence["full_prompt"] + doping_sentence["llm_completion"]
+            full_text = (
+                doping_sentence["full_prompt"] + doping_sentence["llm_completion"]
+            )
             # convert from tensor to float
-            doping_sentence['uq'] = uq_utils.calculate_perplexity_raw(
-                full_text, tokenizer, model).item()
+            doping_sentence["uq"] = uq_utils.calculate_perplexity_raw(
+                full_text, tokenizer, model
+            ).item()
     # save the json
-    with open(os.path.join(output_dir, "final_output_uq.json"), "w", encoding="utf-8") as f:
+    with open(
+        os.path.join(output_dir, "final_output_uq.json"), "w", encoding="utf-8"
+    ) as f:
         json.dump(dct, f, indent=2, ensure_ascii=False)
