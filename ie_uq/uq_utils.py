@@ -1,5 +1,5 @@
 import torch
-
+import data_parse
 
 
 def calculate_perplexity_raw(text, tokenizer, model):
@@ -43,4 +43,20 @@ def calculate_perplexity_raw_batch(texts, tokenizer, model):
         # avg_log_likelihood = -completion_log_probs.mean().item()
         # perplexity = torch.exp(torch.tensor(avg_log_likelihood)).item()
 
+    return perplexity
+
+def calculate_field_level_perplexity_raw(text, tokenizer, model):
+
+    # Tokenize the full input
+    # Get the length of the assistant message at the end of the inputs
+    parsed_input = data_parse.parse_materials_json(text)
+    collapsed_input = data_parse.collapse_materials_data(parsed_input)
+    input_ids = tokenizer(collapsed_input, return_tensors="pt").input_ids
+    
+    # For instance, if we had the first item in our dataset, the collapsed input is
+    # "SrLaMgTaO6, trivalent erbium, [b0]" which is tokenized as before.
+    outputs = model(input_ids, labels=input_ids)
+    # just use loss 
+    perplexity = torch.exp(outputs.loss)
+    
     return perplexity
