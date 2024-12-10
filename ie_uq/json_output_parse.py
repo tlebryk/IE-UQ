@@ -62,42 +62,18 @@ def parse_materials_json(json_str: str) -> MaterialsData:
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(f"Invalid JSON string: {str(e)}", e.doc, e.pos)
 
-def collapse_fields(data: MaterialsData) -> str:
+def collapse_fields(data: MaterialsData) -> list:
     """
-    Collapse the basemats and dopants fields into a single string.
+    Collapse the basemats and dopants fields into a single list.
     
     Args:
         data: A dictionary containing basemats and dopants data
     """
 
-    # Grab all the values from the MaterialsData object
-    all_materials = data['basemats'].values() + data['dopants'].values() + data['dopants2basemats'].values()
+    # Grab all the items from the MaterialsData object
+    basemat_list = list(data['basemats'].items())
+    dopant_list = list(data['dopants'].items())
+    dopant2basemat_list = list(data['dopants2basemats'].items())
 
-    # Convert the dictionary to a string
-    return " ,".join(all_materials)
-
-# Example usage:
-if __name__ == "__main__":
-    # Your example JSON string
-    json_str = '''
-    {
-        "basemats": {
-            "b0": "SrTiO3"
-        },
-        "dopants": {
-            "d0": "Lanthanide",
-            "d1": "Ln3+ (Ln3+ = Lu3+, La3+, Tb3+)"
-        },
-        "dopants2basemats": {
-        }
-    }
-    '''
-    
-    try:
-        result = parse_materials_json(json_str)
-        print("Parsed data:")
-        print("Basemats:", result['basemats'])
-        print("Dopants:", result['dopants'])
-        print("Dopants to Basemats mappings:", result['dopants2basemats'])
-    except (json.JSONDecodeError, KeyError) as e:
-        print(f"Error parsing JSON: {str(e)}")
+    all_materials = basemat_list + dopant_list + dopant2basemat_list
+    return all_materials
