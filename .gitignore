@@ -1,3 +1,5 @@
 desktop.ini
 *.pyc
 build/
+.venv
+ie_uq.egg-info/
